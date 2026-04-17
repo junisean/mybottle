@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>마이보틀 물류도착 발주 시스템</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Noto Sans KR', sans-serif; background: #f0f4f8; min-height: 100vh; }
+.header { background: linear-gradient(135deg, #2c3e50, #3498db); color: white; padding: 20px; text-align: center; }
+.header .logo { height: 50px; vertical-align: middle; margin-right: 10px; }
+.header h1 { display: inline-block; font-size: 24px; vertical-align: middle; }
+.header .date { font-size: 14px; opacity: 0.8; margin-top: 5px; }
+.section-header { color: white; padding: 12px 20px; margin: 20px 20px 0; border-radius: 12px 12px 0 0; font-size: 18px; font-weight: bold; }
+.section-header.red { background: linear-gradient(135deg, #c0392b, #e74c3c); }
+.section-header.blue { background: linear-gradient(135deg, #2c3e50, #3498db); }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; padding: 0 20px 20px; }
+@media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
+.store-card { background: white; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px; border-radius: 0 0 15px 15px; }
+.store-title { font-size: 18px; font-weight: bold; color: #2c3e50; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #3498db; }
+.store-title.red { border-bottom-color: #e74c3c; color: #c0392b; }
+.form-group { margin-bottom: 12px; }
+.form-group label { display: block; font-size: 12px; color: #888; margin-bottom: 4px; font-weight: bold; }
+.form-group input { width: 100%; padding: 9px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+.form-group input:focus { outline: none; border-color: #3498db; }
+.logistics-col-header { display: grid; grid-template-columns: 1fr 70px 80px 1fr 34px; gap: 5px; margin-bottom: 4px; font-size: 11px; color: #aaa; padding-left: 4px; }
+.col-header { display: grid; grid-template-columns: 1fr 70px 80px 34px; gap: 5px; margin-bottom: 4px; font-size: 11px; color: #aaa; padding-left: 4px; }
+.logistics-item-row { display: grid; grid-template-columns: 1fr 70px 80px 1fr 34px; gap: 5px; margin-bottom: 6px; }
+.item-row { display: grid; grid-template-columns: 1fr 70px 80px 34px; gap: 5px; margin-bottom: 6px; }
+.logistics-item-row input, .logistics-item-row select,
+.item-row input, .item-row select { padding: 8px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; width: 100%; background: white; }
+.logistics-item-row input:focus, .logistics-item-row select:focus,
+.item-row input:focus, .item-row select:focus { outline: none; border-color: #e74c3c; }
+.unit-select { padding: 8px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; width: 100%; background: white; }
+.del-btn { background: #ff6b6b; color: white; border: none; border-radius: 8px; width: 34px; height: 34px; cursor: pointer; font-size: 18px; }
+.add-btn { width: 100%; padding: 8px; background: #f0f4f8; border: 2px dashed #3498db; border-radius: 8px; color: #3498db; font-size: 13px; cursor: pointer; margin-top: 4px; font-weight: bold; }
+.add-btn.red { border-color: #e74c3c; color: #e74c3c; }
+.submit-btn { width: 100%; padding: 11px; background: linear-gradient(135deg, #2c3e50, #3498db); color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 12px; }
+.submit-btn.red { background: linear-gradient(135deg, #c0392b, #e74c3c); }
+.divider { border: none; border-top: 2px dashed #e0e0e0; margin: 20px 0; }
+.section-label { font-size: 13px; font-weight: bold; color: #888; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.filter-wrap { display: flex; align-items: center; gap: 6px; }
+.filter-wrap input[type=date] { padding: 5px 8px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; }
+.filter-wrap button { padding: 5px 12px; background: #3498db; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: bold; }
+.filter-wrap button.red { background: #e74c3c; }
+.save-checks-container { text-align: right; margin-bottom: 10px; }
+.save-checks-btn { padding: 6px 14px; background: #27ae60; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; }
+.save-checks-btn.saving { background: #95a5a6; cursor: not-allowed; }
+.order-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+@media (max-width: 1200px) { .order-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 768px) { .order-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .order-grid { grid-template-columns: 1fr; } }
+.order-item { background: #f8f9fa; border-radius: 8px; padding: 8px; border-left: 3px solid #ddd; display: flex; flex-direction: column; gap: 6px; }
+.order-item.checked { border-left-color: #3498db; background: #e3f0fb; }
+.order-item.later { border-left-color: #f39c12; background: #fff9e6; }
+.order-row1 { display: flex; align-items: center; gap: 6px; }
+.check-box { width: 20px; height: 20px; border: 2px solid #ddd; border-radius: 4px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+.check-box.checked { background: #3498db; border-color: #3498db; color: white; }
+.order-material { font-weight: bold; font-size: 14px; color: #2c3e50; flex: 1; }
+.order-qty { font-size: 13px; color: #3498db; font-weight: bold; white-space: nowrap; }
+.order-row2 { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.order-name { font-size: 11px; color: #aaa; flex: 1; }
+.later-box { padding: 2px 6px; border: 1.5px solid #ddd; border-radius: 4px; cursor: pointer; font-size: 9px; color: #888; white-space: nowrap; }
+.later-box.checked { background: #f39c12; border-color: #f39c12; color: white; font-weight: bold; }
+.logistics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+@media (max-width: 1200px) { .logistics-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 768px) { .logistics-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .logistics-grid { grid-template-columns: 1fr; } }
+.logistics-item { border-radius: 8px; padding: 8px; border-left: 3px solid #2ecc71; background: #f0fff4; display: flex; flex-direction: column; gap: 4px; }
+.logistics-item.has-issue { border-left-color: #e74c3c; background: #fff0f0; }
+.lname-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.lname { font-weight: bold; font-size: 14px; color: #2c3e50; flex: 1; }
+.lcount { font-size: 13px; color: #27ae60; font-weight: bold; white-space: nowrap; }
+.logistics-item.has-issue .lcount { color: #e74c3c; }
+.linspector { font-size: 11px; color: #aaa; }
+.lissue { font-size: 11px; color: #e74c3c; background: #ffe0e0; border-radius: 4px; padding: 2px 6px; margin-top: 2px; }
+.empty-msg { text-align: center; color: #ccc; padding: 20px; font-size: 13px; grid-column: 1 / -1; }
+.loading-msg { text-align: center; color: #3498db; padding: 20px; font-size: 13px; grid-column: 1 / -1; }
+.memo-section { margin-top: 20px; }
+.memo-label { font-size: 13px; font-weight: bold; color: #888; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+.memo-status { font-size: 11px; color: #95a5a6; }
+.memo-status.saving { color: #3498db; }
+.memo-status.saved { color: #27ae60; }
+.memo-textarea { width: 100%; min-height: 120px; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; font-family: 'Noto Sans KR', sans-serif; resize: vertical; }
+.memo-textarea:focus { outline: none; border-color: #3498db; }
+.memo-count { font-size: 11px; color: #aaa; text-align: right; margin-top: 4px; }
+.memo-save-btn { padding: 6px 12px; background: #3498db; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: bold; margin-top: 8px; }
+.download-bar { display: flex; justify-content: center; gap: 10px; padding: 10px 20px 30px; flex-wrap: wrap; }
+.download-btn { padding: 10px 20px; background: #27ae60; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; }
+.download-btn.red { background: #e74c3c; }
+.toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #2c3e50; color: white; padding: 12px 25px; border-radius: 25px; font-size: 14px; z-index: 9999; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a href="javascript:location.reload()"><img src="logo.png" class="logo" alt="MYBOTTLE" style="cursor:pointer;"></a>
+  <h1>마이보틀 물류도착 발주 시스템</h1>
+  <div class="date" id="today"></div>
+</div>
+
+<!-- 도착 물류 체크 -->
+<div class="section-header red">🚚 도착 물류 체크</div>
+<div class="two-col">
+
+  <!-- 야탑 물류 -->
+  <div class="store-card">
+    <div class="store-title red">🏪 마이보틀 야탑 물류</div>
+    <div class="form-group">
+      <label>점검자 이름</label>
+      <input type="text" id="logistics-inspector-yatap" placeholder="점검자 이름을 입력하세요">
+    </div>
+    <div class="logistics-col-header">
+      <span>물류 품목</span><span>개수</span><span>단위</span><span>이슈사항</span><span></span>
+    </div>
+    <div id="logistics-items-yatap">
+      <div class="logistics-item-row">
+        <input type="text" placeholder="물류 품목명">
+        <input type="number" placeholder="개수">
+        <select class="unit-select"><option value="">단위</option><option>개</option><option>박스</option><option>봉</option><option>팩</option><option>병</option><option>캔</option><option>장</option><option>kg</option><option>g</option><option>L</option><option>ml</option><option>묶음</option><option>기타</option></select>
+        <input type="text" placeholder="이슈사항 (파손, 수량부족 등)">
+        <button class="del-btn" onclick="delLogisticsRow(this)">×</button>
+      </div>
+    </div>
+    <button class="add-btn red" onclick="addLogisticsRow('yatap')">+ 품목 추가</button>
+    <button class="submit-btn red" onclick="submitLogistics('야탑','yatap')">🚚 야탑 물류 등록</button>
+    <hr class="divider">
+    <div class="section-label">
+      📋 야탑 물류 현황
+      <div class="filter-wrap">
+        <input type="date" id="filter-logistics-yatap">
+        <button class="red" onclick="loadLogistics('야탑','yatap')">🔍</button>
+      </div>
+    </div>
+    <div class="logistics-grid" id="list-logistics-yatap"><div class="empty-msg">물류 내역이 없습니다</div></div>
+  </div>
+
+  <!-- 서현 물류 -->
+  <div class="store-card">
+    <div class="store-title red">🏪 마이보틀 서현 물류</div>
+    <div class="form-group">
+      <label>점검자 이름</label>
+      <input type="text" id="logistics-inspector-seohyun" placeholder="점검자 이름을 입력하세요">
+    </div>
+    <div class="logistics-col-header">
+      <span>물류 품목</span><span>개수</span><span>단위</span><span>이슈사항</span><span></span>
+    </div>
+    <div id="logistics-items-seohyun">
+      <div class="logistics-item-row">
+        <input type="text" placeholder="물류 품목명">
+        <input type="number" placeholder="개수">
+        <select class="unit-select"><option value="">단위</option><option>개</option><option>박스</option><option>봉</option><option>팩</option><option>병</option><option>캔</option><option>장</option><option>kg</option><option>g</option><option>L</option><option>ml</option><option>묶음</option><option>기타</option></select>
+        <input type="text" placeholder="이슈사항 (파손, 수량부족 등)">
+        <button class="del-btn" onclick="delLogisticsRow(this)">×</button>
+      </div>
+    </div>
+    <button class="add-btn red" onclick="addLogisticsRow('seohyun')">+ 품목 추가</button>
+    <button class="submit-btn red" onclick="submitLogistics('서현','seohyun')">🚚 서현 물류 등록</button>
+    <hr class="divider">
+    <div class="section-label">
+      📋 서현 물류 현황
+      <div class="filter-wrap">
+        <input type="date" id="filter-logistics-seohyun">
+        <button class="red" onclick="loadLogistics('서현','seohyun')">🔍</button>
+      </div>
+    </div>
+    <div class="logistics-grid" id="list-logistics-seohyun"><div class="empty-msg">물류 내역이 없습니다</div></div>
+  </div>
+
+</div>
+
+<!-- 발주 입력 -->
+<div class="section-header blue">📦 발주 입력</div>
+<div class="two-col">
+
+  <!-- 야탑 발주 -->
+  <div class="store-card">
+    <div class="store-title">🏪 마이보틀 야탑</div>
+    <div class="form-group">
+      <label>발주자 이름</label>
+      <input type="text" id="name-yatap" placeholder="이름을 입력하세요">
+    </div>
+    <div class="col-header"><span>재료명</span><span>수량</span><span>단위</span><span></span></div>
+    <div id="items-yatap">
+      <div class="item-row">
+        <input type="text" placeholder="재료명">
+        <input type="number" placeholder="수량">
+        <select class="unit-select"><option value="">단위</option><option>개</option><option>박스</option><option>봉</option><option>병</option><option>캔</option><option>팩</option><option>장</option><option>kg</option><option>g</option><option>L</option><option>ml</option><option>묶음</option><option>기타</option></select>
+        <button class="del-btn" onclick="delRow(this)">×</button>
+      </div>
+    </div>
+    <button class="add-btn" onclick="addRow('yatap')">+ 재료 추가</button>
+    <button class="submit-btn" onclick="submitOrder('야탑','yatap')">📤 야탑 발주 제출</button>
+    <hr class="divider">
+    <div class="section-label">
+      📋 발주 현황
+      <div class="filter-wrap">
+        <input type="date" id="filter-yatap">
+        <button onclick="onDateChange('야탑','yatap')">🔍</button>
+      </div>
+    </div>
+    <div class="save-checks-container">
+      <button class="save-checks-btn" id="save-btn-yatap" onclick="saveChecks('야탑','yatap')">💾 변경사항 저장</button>
+    </div>
+    <div class="order-grid" id="list-yatap"><div class="empty-msg">발주 내역이 없습니다</div></div>
+    <div class="memo-section">
+      <div class="memo-label">📝 메모 REMINDER <span class="memo-status" id="memo-status-yatap"></span></div>
+      <textarea class="memo-textarea" id="memo-yatap" placeholder="대표님. 여기에 메모해 두시면 업무 처리 하시기 더 수월합니다." maxlength="1000" oninput="onMemoInput('야탑','yatap')"></textarea>
+      <div class="memo-count"><span id="memo-count-yatap">0</span> / 1000자</div>
+      <button class="memo-save-btn" onclick="saveMemo('야탑','yatap',false)">💾 메모 저장</button>
+    </div>
+  </div>
+
+  <!-- 서현 발주 -->
+  <div class="store-card">
+    <div class="store-title">🏪 마이보틀 서현</div>
+    <div class="form-group">
+      <label>발주자 이름</label>
+      <input type="text" id="name-seohyun" placeholder="이름을 입력하세요">
+    </div>
+    <div class="col-header"><span>재료명</span><span>수량</span><span>단위</span><span></span></div>
+    <div id="items-seohyun">
+      <div class="item-row">
+        <input type="text" placeholder="재료명">
+        <input type="number" placeholder="수량">
+        <select class="unit-select"><option value="">단위</option><option>개</option><option>박스</option><option>봉</option><option>병</option><option>캔</option><option>팩</option><option>장</option><option>kg</option><option>g</option><option>L</option><option>ml</option><option>묶음</option><option>기타</option></select>
+        <button class="del-btn" onclick="delRow(this)">×</button>
+      </div>
+    </div>
+    <button class="add-btn" onclick="addRow('seohyun')">+ 재료 추가</button>
+    <button class="submit-btn" onclick="submitOrder('서현','seohyun')">📤 서현 발주 제출</button>
+    <hr class="divider">
+    <div class="section-label">
+      📋 발주 현황
+      <div class="filter-wrap">
+        <input type="date" id="filter-seohyun">
+        <button onclick="onDateChange('서현','seohyun')">🔍</button>
+      </div>
+    </div>
+    <div class="save-checks-container">
+      <button class="save-checks-btn" id="save-btn-seohyun" onclick="saveChecks('서현','seohyun')">💾 변경사항 저장</button>
+    </div>
+    <div class="order-grid" id="list-seohyun"><div class="empty-msg">발주 내역이 없습니다</div></div>
+    <div class="memo-section">
+      <div class="memo-label">📝 메모 REMINDER <span class="memo-status" id="memo-status-seohyun"></span></div>
+      <textarea class="memo-textarea" id="memo-seohyun" placeholder="대표님. 여기에 메모해 두시면 업무 처리 하시기 더 수월합니다." maxlength="1000" oninput="onMemoInput('서현','seohyun')"></textarea>
+      <div class="memo-count"><span id="memo-count-seohyun">0</span> / 1000자</div>
+      <button class="memo-save-btn" onclick="saveMemo('서현','seohyun',false)">💾 메모 저장</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="download-bar">
+  <button class="download-btn red" onclick="downloadLogisticsCSV('야탑')">📥 야탑 물류 다운</button>
+  <button class="download-btn red" onclick="downloadLogisticsCSV('서현')">📥 서현 물류 다운</button>
+  <button class="download-btn" onclick="downloadOrderCSV('야탑')">📥 야탑 발주 다운</button>
+  <button class="download-btn" onclick="downloadOrderCSV('서현')">📥 서현 발주 다운</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbwuznXSxJeUG5PfSKbBtuGtpwaWN6A5TulFB6y3bp4H7qlt653PisKj2GeIYJXT5cht/exec';
+
+const today = new Date();
+const yyyy = today.getFullYear();
+const mm = String(today.getMonth() + 1).padStart(2, '0');
+const dd = String(today.getDate()).padStart(2, '0');
+const todayStr = yyyy + '-' + mm + '-' + dd;
+
+document.getElementById('today').textContent = today.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+['filter-yatap','filter-seohyun','filter-logistics-yatap','filter-logistics-seohyun'].forEach(function(id) {
+  document.getElementById(id).value = todayStr;
+});
+
+const memoTimers = {};
+const localCheckState = {};
+
+window.onload = function() {
+  loadOrders('야탑', 'yatap');
+  loadOrders('서현', 'seohyun');
+  fetchMemo('야탑', 'yatap');
+  fetchMemo('서현', 'seohyun');
+  loadLogistics('야탑', 'yatap');
+  loadLogistics('서현', 'seohyun');
+};
+
+function getUnitOptions() {
+  return '<option value="">단위</option><option>개</option><option>박스</option><option>봉</option><option>팩</option><option>병</option><option>캔</option><option>장</option><option>kg</option><option>g</option><option>L</option><option>ml</option><option>묶음</option><option>기타</option>';
+}
+
+// ── 물류 함수 ──
+function addLogisticsRow(storeId) {
+  var container = document.getElementById('logistics-items-' + storeId);
+  var row = document.createElement('div');
+  row.className = 'logistics-item-row';
+  row.innerHTML = '<input type="text" placeholder="물류 품목명"><input type="number" placeholder="개수"><select class="unit-select">' + getUnitOptions() + '</select><input type="text" placeholder="이슈사항 (파손, 수량부족 등)"><button class="del-btn" onclick="delLogisticsRow(this)">×</button>';
+  container.appendChild(row);
+}
+
+function delLogisticsRow(btn) {
+  var container = btn.closest('.logistics-item-row').parentElement;
+  if (container.children.length > 1) {
+    btn.closest('.logistics-item-row').remove();
+  } else {
+    showToast('최소 1개 항목은 있어야 해요!');
+  }
+}
+
+async function submitLogistics(storeName, storeId) {
+  var inspector = document.getElementById('logistics-inspector-' + storeId).value.trim();
+  if (!inspector) { showToast('점검자 이름을 입력해주세요!'); return; }
+  var rows = document.querySelectorAll('#logistics-items-' + storeId + ' .logistics-item-row');
+  var items = [];
+  var valid = true;
+  rows.forEach(function(row) {
+    var inputs = row.querySelectorAll('input');
+    var select = row.querySelector('select');
+    var name = inputs[0].value.trim();
+    var count = inputs[1].value.trim();
+    var unit = select.value;
+    var issue = inputs[2].value.trim();
+    if (!name || !count || !unit) { valid = false; return; }
+    items.push({ name: name, count: count, unit: unit, issue: issue });
+  });
+  if (!valid || items.length === 0) { showToast('품목명, 개수, 단위를 모두 입력해주세요!'); return; }
+  showToast('등록 중...');
+  try {
+    var res = await callAPI({ action: 'saveLogistics', store: storeName, date: todayStr, inspector: inspector, items: items });
+    if (res.success) {
+      showToast('✅ 물류 체크가 등록되었습니다!');
+      document.getElementById('logistics-inspector-' + storeId).value = '';
+      document.getElementById('logistics-items-' + storeId).innerHTML = '<div class="logistics-item-row"><input type="text" placeholder="물류 품목명"><input type="number" placeholder="개수"><select class="unit-select">' + getUnitOptions() + '</select><input type="text" placeholder="이슈사항 (파손, 수량부족 등)"><button class="del-btn" onclick="delLogisticsRow(this)">×</button></div>';
+      await loadLogistics(storeName, storeId);
+    } else {
+      showToast('❌ 오류: ' + res.message);
+    }
+  } catch(e) { showToast('❌ 네트워크 오류!'); }
+}
+
+async function loadLogistics(storeName, storeId) {
+  var date = document.getElementById('filter-logistics-' + storeId).value;
+  var container = document.getElementById('list-logistics-' + storeId);
+  container.innerHTML = '<div class="loading-msg">⏳ 불러오는 중...</div>';
+  try {
+    var res = await callAPI({ action: 'fetchLogistics', store: storeName, date: date });
+    if (!res.success) { container.innerHTML = '<div class="empty-msg">❌ ' + res.message + '</div>'; return; }
+    if (!res.data || res.data.length === 0) { container.innerHTML = '<div class="empty-msg">물류 내역이 없습니다</div>'; return; }
+    container.innerHTML = '';
+    res.data.forEach(function(item) {
+      var hasIssue = item.issue && item.issue !== '';
+      var div = document.createElement('div');
+      div.className = 'logistics-item' + (hasIssue ? ' has-issue' : '');
+      div.innerHTML =
+        '<div class="lname-row"><span class="lname">📦 ' + item.name + '</span><span class="lcount">' + item.count + ' ' + item.unit + '</span></div>' +
+        '<div class="linspector">👤 ' + item.inspector + '</div>' +
+        (hasIssue ? '<div class="lissue">⚠️ ' + item.issue + '</div>' : '');
+      container.appendChild(div);
+    });
+  } catch(e) { container.innerHTML = '<div class="empty-msg">❌ 불러오기 실패</div>'; }
+}
+
+// ── 발주 함수 ──
+function addRow(store) {
+  var container = document.getElementById('items-' + store);
+  var row = document.createElement('div');
+  row.className = 'item-row';
+  row.innerHTML = '<input type="text" placeholder="재료명"><input type="number" placeholder="수량"><select class="unit-select">' + getUnitOptions() + '</select><button class="del-btn" onclick="delRow(this)">×</button>';
+  container.appendChild(row);
+}
+
+function delRow(btn) {
+  var container = btn.closest('.item-row').parentElement;
+  if (container.children.length > 1) {
+    btn.closest('.item-row').remove();
+  } else {
+    showToast('최소 1개 항목은 있어야 해요!');
+  }
+}
+
+async function submitOrder(storeName, storeId) {
+  var name = document.getElementById('name-' + storeId).value.trim();
+  if (!name) { showToast('발주자 이름을 입력해주세요!'); return; }
+  var rows = document.querySelectorAll('#items-' + storeId + ' .item-row');
+  var items = [];
+  var valid = true;
+  rows.forEach(function(row) {
+    var inputs = row.querySelectorAll('input');
+    var select = row.querySelector('select');
+    var material = inputs[0].value.trim();
+    var quantity = inputs[1].value.trim();
+    var unit = select.value;
+    if (!material || !quantity || !unit) { valid = false; return; }
+    items.push({ material: material, quantity: quantity, unit: unit });
+  });
+  if (!valid || items.length === 0) { showToast('재료명, 수량, 단위를 모두 입력해주세요!'); return; }
+  showToast('저장 중...');
+  try {
+    var res = await callAPI({ action: 'save', store: storeName, date: todayStr, name: name, items: items });
+    if (res.success) {
+      showToast('✅ 발주가 제출되었습니다!');
+      document.getElementById('name-' + storeId).value = '';
+      document.getElementById('items-' + storeId).innerHTML = '<div class="item-row"><input type="text" placeholder="재료명"><input type="number" placeholder="수량"><select class="unit-select">' + getUnitOptions() + '</select><button class="del-btn" onclick="delRow(this)">×</button></div>';
+      document.getElementById('filter-' + storeId).value = todayStr;
+      await loadOrders(storeName, storeId);
+    } else {
+      showToast('❌ 오류: ' + res.message);
+    }
+  } catch(e) { showToast('❌ 네트워크 오류!'); }
+}
+
+async function loadOrders(storeName, storeId) {
+  var date = document.getElementById('filter-' + storeId).value;
+  var container = document.getElementById('list-' + storeId);
+  container.innerHTML = '<div class="loading-msg">⏳ 불러오는 중...</div>';
+  try {
+    var res = await callAPI({ action: 'fetch', store: storeName, date: date });
+    if (!res.success) { container.innerHTML = '<div class="empty-msg">❌ ' + res.message + '</div>'; return; }
+    if (!res.data || res.data.length === 0) { container.innerHTML = '<div class="empty-msg">발주 내역이 없습니다</div>'; return; }
+    localCheckState[storeId] = {};
+    container.innerHTML = '';
+    res.data.forEach(function(item) {
+      var isDone = item.done === 'Y';
+      var isLater = item.later === 'Y';
+      localCheckState[storeId][item.rowIndex] = { done: isDone, later: isLater };
+      var div = document.createElement('div');
+      div.className = 'order-item' + (isDone ? ' checked' : '') + (isLater ? ' later' : '');
+      div.dataset.rowIndex = item.rowIndex;
+      div.innerHTML =
+        '<div class="order-row1">' +
+          '<div class="check-box ' + (isDone ? 'checked' : '') + '" onclick="toggleDone(\'' + storeId + '\',' + item.rowIndex + ')">' + (isDone ? '✓' : '') + '</div>' +
+          '<div class="order-material">📦 ' + item.material + '</div>' +
+          '<div class="order-qty">' + item.quantity + ' ' + item.unit + '</div>' +
+        '</div>' +
+        '<div class="order-row2">' +
+          '<div class="order-name">👤 ' + item.name + '</div>' +
+          '<div class="later-box ' + (isLater ? 'checked' : '') + '" onclick="toggleLater(\'' + storeId + '\',' + item.rowIndex + ')">나중에</div>' +
+        '</div>';
+      container.appendChild(div);
+    });
+  } catch(e) { container.innerHTML = '<div class="empty-msg">❌ 불러오기 실패</div>'; }
+}
+
+function toggleDone(storeId, rowIndex) {
+  if (!localCheckState[storeId]) localCheckState[storeId] = {};
+  if (!localCheckState[storeId][rowIndex]) localCheckState[storeId][rowIndex] = { done: false, later: false };
+  localCheckState[storeId][rowIndex].done = !localCheckState[storeId][rowIndex].done;
+  updateLocalUI(storeId, rowIndex);
+}
+
+function toggleLater(storeId, rowIndex) {
+  if (!localCheckState[storeId]) localCheckState[storeId] = {};
+  if (!localCheckState[storeId][rowIndex]) localCheckState[storeId][rowIndex] = { done: false, later: false };
+  localCheckState[storeId][rowIndex].later = !localCheckState[storeId][rowIndex].later;
+  updateLocalUI(storeId, rowIndex);
+}
+
+function updateLocalUI(storeId, rowIndex) {
+  var container = document.getElementById('list-' + storeId);
+  var itemDiv = container.querySelector('[data-row-index="' + rowIndex + '"]');
+  if (!itemDiv) return;
+  var state = localCheckState[storeId][rowIndex];
+  var checkBox = itemDiv.querySelector('.check-box');
+  var laterBox = itemDiv.querySelector('.later-box');
+  if (state.done) {
+    checkBox.classList.add('checked'); checkBox.textContent = '✓'; itemDiv.classList.add('checked');
+  } else {
+    checkBox.classList.remove('checked'); checkBox.textContent = ''; itemDiv.classList.remove('checked');
+  }
+  if (state.later) {
+    laterBox.classList.add('checked'); itemDiv.classList.add('later');
+  } else {
+    laterBox.classList.remove('checked'); itemDiv.classList.remove('later');
+  }
+}
+
+async function saveChecks(storeName, storeId) {
+  var btn = document.getElementById('save-btn-' + storeId);
+  btn.classList.add('saving');
+  btn.textContent = '💾 저장 중...';
+  var checks = [];
+  for (var rowIndex in localCheckState[storeId]) {
+    checks.push({ rowIndex: parseInt(rowIndex), done: localCheckState[storeId][rowIndex].done, later: localCheckState[storeId][rowIndex].later });
+  }
+  try {
+    var res = await callAPI({ action: 'saveChecks', store: storeName, checks: checks });
+    if (res.success) {
+      showToast('✅ 변경사항이 저장되었습니다!');
+    } else {
+      showToast('❌ 저장 실패: ' + res.message);
+    }
+  } catch(e) { showToast('❌ 네트워크 오류!'); }
+  btn.classList.remove('saving');
+  btn.textContent = '💾 변경사항 저장';
+}
+
+function onDateChange(storeName, storeId) {
+  loadOrders(storeName, storeId);
+  fetchMemo(storeName, storeId);
+}
+
+function onMemoInput(store, id) {
+  var textarea = document.getElementById('memo-' + id);
+  var count = document.getElementById('memo-count-' + id);
+  var status = document.getElementById('memo-status-' + id);
+  count.textContent = textarea.value.length;
+  status.textContent = '입력 중...';
+  status.className = 'memo-status saving';
+  clearTimeout(memoTimers[id]);
+  memoTimers[id] = setTimeout(function() { saveMemo(store, id, true); }, 3000);
+}
+
+async function saveMemo(storeName, storeId, isAuto) {
+  var date = document.getElementById('filter-' + storeId).value;
+  var memo = document.getElementById('memo-' + storeId).value;
+  var status = document.getElementById('memo-status-' + storeId);
+  status.textContent = '저장 중...';
+  status.className = 'memo-status saving';
+  try {
+    var res = await callAPI({ action: 'saveMemo', store: storeName, date: date, memo: memo });
+    if (res.success) {
+      status.textContent = isAuto ? '자동 저장됨' : '저장 완료!';
+      status.className = 'memo-status saved';
+      setTimeout(function() { status.textContent = ''; }, 3000);
+    } else {
+      status.textContent = '❌ 저장 실패';
+      status.className = 'memo-status';
+    }
+  } catch(e) {
+    status.textContent = '❌ 네트워크 오류';
+    status.className = 'memo-status';
+  }
+}
+
+async function fetchMemo(storeName, storeId) {
+  var date = document.getElementById('filter-' + storeId).value;
+  var textarea = document.getElementById('memo-' + storeId);
+  var count = document.getElementById('memo-count-' + storeId);
+  try {
+    var res = await callAPI({ action: 'fetchMemo', store: storeName, date: date });
+    if (res.success) {
+      textarea.value = res.memo || '';
+      count.textContent = textarea.value.length;
+    }
+  } catch(e) { console.error('메모 불러오기 실패:', e); }
+}
+
+async function downloadLogisticsCSV(storeName) {
+  showToast('다운로드 준비 중...');
+  try {
+    var res = await callAPI({ action: 'fetchLogistics', store: storeName, date: '' });
+    if (!res.success || !res.data || res.data.length === 0) { showToast('데이터가 없습니다.'); return; }
+    var csv = '\uFEFF날짜,점검자,품목,개수,단위,이슈사항,등록시간\n';
+    res.data.forEach(function(item) {
+      csv += [item.date, item.inspector, item.name, item.count, item.unit, item.issue, item.time].join(',') + '\n';
+    });
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '마이보틀_' + storeName + '_물류_' + todayStr + '.csv';
+    a.click();
+    showToast('✅ 다운로드 완료!');
+  } catch(e) { showToast('❌ 다운로드 실패!'); }
+}
+
+async function downloadOrderCSV(storeName) {
+  showToast('다운로드 준비 중...');
+  try {
+    var res = await callAPI({ action: 'fetch', store: storeName, date: '' });
+    if (!res.success || !res.data || res.data.length === 0) { showToast('데이터가 없습니다.'); return; }
+    var csv = '\uFEFF날짜,발주자,재료명,수량,단위,완료여부,나중에여부,완료시간\n';
+    res.data.forEach(function(item) {
+      csv += [item.date, item.name, item.material, item.quantity, item.unit, item.done === 'Y' ? '완료' : '미완료', item.later === 'Y' ? '나중에' : '', item.doneTime].join(',') + '\n';
+    });
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '마이보틀_' + storeName + '_발주_' + todayStr + '.csv';
+    a.click();
+    showToast('✅ 다운로드 완료!');
+  } catch(e) { showToast('❌ 다운로드 실패!'); }
+}
+
+function callAPI(data) {
+  return fetch(API_URL, {
+    method: 'POST',
+    mode: 'cors',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(data)
+  }).then(function(r) { return r.json(); });
+}
+
+function showToast(msg) {
+  var toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.style.display = 'block';
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(function() { toast.style.display = 'none'; }, 3000);
+}
+</script>
+</body>
+</html>
